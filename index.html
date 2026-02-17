@@ -1,97 +1,47 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tarot Petra Olivares</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #050208; color: #f1c40f; font-family: 'Georgia', serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
-        h1 { margin: 10px 0; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 2px; }
-        .viewport-fix { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .mesa-tarot { position: relative; width: 650px; height: 550px; background: radial-gradient(circle, #1a0f2e 0%, #000 80%); border-radius: 50%; transform-origin: center center; }
-        .slot { position: absolute; width: 80px; height: 125px; border: 1px solid #d4af37; border-radius: 5px; background: #111; display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.8); }
-        .slot img { width: 100%; height: 100%; object-fit: cover; display: none; }
-        .is-back { background: linear-gradient(45deg, #2e1a47, #000) !important; border: 2px solid #f1c40f; }
-        .glow-final { box-shadow: 0 0 20px #fff !important; border-color: #fff !important; }
-        
-        #s0 { left: 230px; top: 210px; z-index: 10; } 
-        #s1 { left: 230px; top: 210px; z-index: 11; transform: rotate(90deg); } 
-        #s2 { left: 230px; top: 380px; } 
-        #s3 { left: 100px; top: 210px; }  
-        #s4 { left: 360px; top: 210px; } 
-        #s5 { left: 230px; top: 40px; }  
-        #s6 { left: 520px; top: 410px; } 
-        #s7 { left: 520px; top: 290px; }  
-        #s8 { left: 520px; top: 170px; } 
-        #s9 { left: 520px; top: 50px; }
-
-        .controles { padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; background: #000; z-index: 100; }
-        #log { font-size: 0.8rem; color: #2ecc71; font-weight: bold; height: 1.2rem; }
-        button { padding: 12px 25px; background: #1a0f2e; border: 1px solid #f1c40f; color: #f1c40f; font-weight: bold; cursor: pointer; border-radius: 4px; }
-        button:disabled { opacity: 0.3; }
-    </style>
-</head>
-<body>
-
-<h1>Petra Olivares</h1>
-
-<div class="viewport-fix">
-    <div class="mesa-tarot" id="mesa">
-        <div id="s0" class="slot is-back"></div><div id="s1" class="slot is-back"></div>
-        <div id="s2" class="slot is-back"></div><div id="s3" class="slot is-back"></div>
-        <div id="s4" class="slot is-back"></div><div id="s5" class="slot is-back"></div>
-        <div id="s6" class="slot is-back"></div><div id="s7" class="slot is-back"></div>
-        <div id="s8" class="slot is-back"></div><div id="s9" class="slot is-back"></div>
-    </div>
-</div>
-
-<div class="controles">
-    <div id="log">Servidor GitHub Conectado</div>
-    <div style="display:flex; gap:10px;">
-        <button id="btn-barajear" onclick="mezclar()">BARAJEAR</button>
-        <button id="btn-invocar" disabled onclick="lanzar()">INVOCAR</button>
-    </div>
-</div>
-
 <script>
+    // 1. CONFIGURACIÓN DEL SERVIDOR
     const USUARIO = "sanchezrodriguezdannyjose-byte"; 
     const REPOSITORIO = "TAROT";
     const BaseURL = `https://${USUARIO}.github.io/${REPOSITORIO}/cards/`;
 
+    // 2. LISTA DE CARTAS (Del 0 al 77)
     const nombresArchivos = Array.from({length: 78}, (_, i) => `${i}.jpg`);
 
     let seleccionadas = [];
 
+    // 3. FUNCIÓN PARA BARAJEAR
     async function mezclar() {
         const log = document.getElementById('log');
         const btnI = document.getElementById('btn-invocar');
-        log.innerText = "Barajando mazo...";
+        log.innerText = "Sincronizando mazo...";
         log.style.color = "#f1c40f";
 
         let mazo = [...nombresArchivos].sort(() => Math.random() - 0.5);
         let elegidas = mazo.slice(0, 10);
         seleccionadas = [];
 
+        // Limpiar mesa
         document.querySelectorAll('.slot').forEach(s => {
             s.innerHTML = ''; 
             s.classList.add('is-back');
             s.classList.remove('glow-final');
         });
 
+        // Cargar imágenes desde GitHub
         for(let i=0; i<10; i++) {
             const img = new Image();
             img.src = BaseURL + elegidas[i] + "?v=" + Date.now();
             await new Promise(res => {
                 img.onload = () => { seleccionadas[i] = img; res(); };
-                img.onerror = () => { console.error("Error:", elegidas[i]); res(); };
+                img.onerror = () => { res(); };
             });
         }
-        log.innerText = "¡Mazo listo! Inicia la invocación.";
+        log.innerText = "Mazo listo. Inicia la invocación.";
         log.style.color = "#2ecc71";
         btnI.disabled = false;
     }
 
+    // 4. FUNCIÓN PARA INVOCAR (MOSTRAR CARTAS)
     async function lanzar() {
         document.getElementById('btn-invocar').disabled = true;
         for(let i=0; i<10; i++) {
@@ -106,6 +56,7 @@
         }
     }
 
+    // 5. AJUSTE DE PANTALLA
     function ajustar() {
         const mesa = document.getElementById('mesa');
         const cont = document.querySelector('.viewport-fix');
@@ -116,5 +67,3 @@
     window.onload = ajustar;
     window.onresize = ajustar;
 </script>
-</body>
-</html>
