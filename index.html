@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tarot Petra Olivares</title>
+    <title>Tarot Petra Olivares - AutoSync</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #050208; color: #f1c40f; font-family: 'Georgia', serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
@@ -14,6 +14,8 @@
         .slot img { width: 100%; height: 100%; object-fit: cover; display: none; }
         .is-back { background: linear-gradient(45deg, #2e1a47, #000) !important; border: 2px solid #f1c40f; }
         .glow-final { box-shadow: 0 0 20px #fff !important; border-color: #fff !important; }
+        
+        /* POSICIONES CRUZ CELTA */
         #s0 { left: 230px; top: 210px; z-index: 10; } 
         #s1 { left: 230px; top: 210px; z-index: 11; transform: rotate(90deg); } 
         #s2 { left: 230px; top: 380px; } 
@@ -24,6 +26,7 @@
         #s7 { left: 520px; top: 290px; }  
         #s8 { left: 520px; top: 170px; } 
         #s9 { left: 520px; top: 50px; }
+
         .controles { padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; background: #000; z-index: 100; }
         #log { font-size: 0.8rem; color: #2ecc71; font-weight: bold; height: 1.2rem; }
         button { padding: 12px 25px; background: #1a0f2e; border: 1px solid #f1c40f; color: #f1c40f; font-weight: bold; cursor: pointer; border-radius: 4px; }
@@ -45,7 +48,7 @@
 </div>
 
 <div class="controles">
-    <div id="log">Servidor Conectado</div>
+    <div id="log">Conectando con servidor de imágenes...</div>
     <div style="display:flex; gap:10px;">
         <button id="btn-barajear" onclick="mezclar()">BARAJEAR</button>
         <button id="btn-invocar" disabled onclick="lanzar()">INVOCAR</button>
@@ -56,31 +59,60 @@
     const USUARIO = "sanchezrodriguezdannyjose-byte"; 
     const REPOSITORIO = "TAROT";
     const BaseURL = `https://${USUARIO}.github.io/${REPOSITORIO}/cards/`;
-    const nombresArchivos = Array.from({length: 78}, (_, i) => `${i}.jpg`);
+    
+    // API de GitHub para leer la lista de archivos automáticamente
+    const ApiURL = `https://api.github.com/repos/${USUARIO}/${REPOSITORIO}/contents/cards`;
+
+    let listaRealDeArchivos = [];
     let seleccionadas = [];
 
+    // Esta función se ejecuta sola al cargar la página para saber qué fotos hay
+    async function obtenerNombresDelServidor() {
+        const log = document.getElementById('log');
+        try {
+            const response = await fetch(ApiURL);
+            const archivos = await response.json();
+            // Filtramos para que solo lea archivos de imagen
+            listaRealDeArchivos = archivos
+                .filter(f => f.name.match(/\.(jpg|jpeg|png|JPG|PNG)$/))
+                .map(f => f.name);
+            
+            log.innerText = `Servidor listo: ${listaRealDeArchivos.length} cartas encontradas.`;
+        } catch (error) {
+            log.innerText = "Error al conectar con GitHub.";
+            console.error(error);
+        }
+    }
+
     async function mezclar() {
+        if (listaRealDeArchivos.length < 10) {
+            alert(`Necesitas al menos 10 imágenes en la carpeta 'cards'. Solo hay ${listaRealDeArchivos.length}`);
+            return;
+        }
+
         const log = document.getElementById('log');
         const btnI = document.getElementById('btn-invocar');
-        log.innerText = "Sincronizando mazo...";
-        log.style.color = "#f1c40f";
-        let mazo = [...nombresArchivos].sort(() => Math.random() - 0.5);
+        log.innerText = "Mezclando capturas...";
+        
+        let mazo = [...listaRealDeArchivos].sort(() => Math.random() - 0.5);
         let elegidas = mazo.slice(0, 10);
         seleccionadas = [];
+
         document.querySelectorAll('.slot').forEach(s => {
             s.innerHTML = ''; 
             s.classList.add('is-back');
             s.classList.remove('glow-final');
         });
+
         for(let i=0; i<10; i++) {
             const img = new Image();
-            img.src = BaseURL + elegidas[i] + "?v=" + Date.now();
+            img.src = BaseURL + elegidas[i];
             await new Promise(res => {
                 img.onload = () => { seleccionadas[i] = img; res(); };
                 img.onerror = () => { res(); };
             });
         }
-        log.innerText = "Mazo listo. Inicia la invocación.";
+        log.innerText = "Lectura lista. Inicia la invocación.";
         log.style.color = "#2ecc71";
         btnI.disabled = false;
     }
@@ -106,7 +138,11 @@
         const escala = Math.min(cont.clientWidth / 680, cont.clientHeight / 580);
         mesa.style.transform = `scale(${escala * 0.95})`;
     }
-    window.onload = ajustar;
+
+    window.onload = () => {
+        ajustar();
+        obtenerNombresDelServidor(); // Cargar la lista apenas abra la web
+    };
     window.onresize = ajustar;
 </script>
 </body>
