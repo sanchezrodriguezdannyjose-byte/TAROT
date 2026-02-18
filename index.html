@@ -116,10 +116,11 @@
         }
         #log { font-size: 0.8rem; color: #f1c40f; font-weight: bold; }
         .btn-group { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; }
-        button { padding: 8px 12px; background: #1a0f2e; border: 1px solid #f1c40f; color: #f1c40f; font-weight: bold; cursor: pointer; border-radius: 4px; text-transform: uppercase; font-size: 0.75rem; }
+        button { padding: 8px 12px; background: #1a0f2e; border: 1px solid #f1c40f; color: #f1c40f; font-weight: bold; cursor: pointer; border-radius: 4px; text-transform: uppercase; font-size: 0.75rem; transition: 0.3s; }
         button:disabled { opacity: 0.2; }
-        .btn-danger { background: #641e16; border-color: #e74c3c; color: white; }
+        .btn-danger { background: #4a0000; border-color: #ff4444; color: #ff4444; }
 
+        /* MODALES */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.98); z-index: 2000;
@@ -127,6 +128,18 @@
         }
         .header-modal { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1c40f; padding-bottom: 10px; margin-bottom: 20px; }
         
+        /* MODAL REINICIAR (ESTILO MÁGICO) */
+        .modal-confirm {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 3000; align-items: center; justify-content: center;
+        }
+        .pergamino {
+            background: #1a0f2e; border: 2px solid #f1c40f; padding: 30px; border-radius: 20px;
+            text-align: center; box-shadow: 0 0 30px #f1c40f44; max-width: 300px;
+        }
+        .pergamino h3 { color: #f1c40f; margin-bottom: 20px; letter-spacing: 2px; text-transform: uppercase; }
+        
+        /* GALERÍA DE MAZO */
         .galeria-grid { 
             display: grid; 
             grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); 
@@ -166,7 +179,17 @@
         <button id="btn-accion" disabled onclick="lanzar()">Invocar</button>
         <button onclick="toggleModal('modal-resumen')">Resumen</button>
         <button onclick="mostrarMazo()">Ver Mazo</button>
-        <button class="btn-danger" onclick="reiniciarConsulta()">Reiniciar</button>
+        <button class="btn-danger" onclick="abrirConfirmacion()">Reiniciar</button>
+    </div>
+</div>
+
+<div id="modal-confirmar" class="modal-confirm">
+    <div class="pergamino">
+        <h3>¿REINICIAR TIRADAS?</h3>
+        <div class="btn-group">
+            <button onclick="ejecutarReinicio()">SÍ</button>
+            <button class="btn-danger" onclick="cerrarConfirmacion()">NO</button>
+        </div>
     </div>
 </div>
 
@@ -198,19 +221,46 @@
     let fase = "CELTA";
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
     function playSound(tipo) {
         if (audioCtx.state === 'suspended') audioCtx.resume();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        let freq = tipo === 'shuffle' ? 150 : 450;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        osc.connect(gain); 
+        gain.connect(audioCtx.destination);
+        osc.type = 'triangle';
+
+        if (tipo === 'shuffle') {
+            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        } else {
+            osc.frequency.setValueAtTime(900, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.4);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+        }
     }
 
     function zoomIn(el) { if (!el.classList.contains('is-back')) el.classList.add('zoom'); }
     function zoomOut(el) { el.classList.remove('zoom'); }
+
+    // FUNCIONES DEL NUEVO MODAL MÁGICO
+    function abrirConfirmacion() {
+        document.getElementById('modal-confirmar').style.display = 'flex';
+    }
+    function cerrarConfirmacion() {
+        document.getElementById('modal-confirmar').style.display = 'none';
+    }
+    function ejecutarReinicio() {
+        cerrarConfirmacion();
+        reiniciarConsulta();
+    }
 
     async function obtenerNombresDelServidor() {
         try {
@@ -219,7 +269,6 @@
             mazoOriginal = archivos
                 .filter(f => f.name.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/))
                 .map(f => f.name);
-            
             document.getElementById('log').innerText = `Mazo Sincronizado: ${mazoOriginal.length} cartas.`;
         } catch (e) { document.getElementById('log').innerText = "Error al conectar con GitHub."; }
     }
@@ -286,20 +335,18 @@
     }
 
     function reiniciarConsulta() {
-        if(confirm("¿Seguro que deseas borrar todo y empezar una consulta nueva?")) {
-            tiradasRealizadas = 0;
-            fase = "CELTA";
-            document.getElementById('resumen-content').innerHTML = '';
-            document.getElementById('btn-accion').innerText = "Invocar";
-            document.getElementById('btn-accion').disabled = true;
-            document.getElementById('btn-barajear').disabled = false;
-            document.querySelectorAll('.slot').forEach((s, i) => {
-                s.innerHTML = '';
-                s.className = 'slot is-back en-mazo';
-                s.style.visibility = i < 10 ? 'visible' : 'hidden';
-            });
-            document.getElementById('log').innerText = "Sistema Reiniciado. Barajee de nuevo.";
-        }
+        tiradasRealizadas = 0;
+        fase = "CELTA";
+        document.getElementById('resumen-content').innerHTML = '';
+        document.getElementById('btn-accion').innerText = "Invocar";
+        document.getElementById('btn-accion').disabled = true;
+        document.getElementById('btn-barajear').disabled = false;
+        document.querySelectorAll('.slot').forEach((s, i) => {
+            s.innerHTML = '';
+            s.className = 'slot is-back en-mazo';
+            s.style.visibility = i < 10 ? 'visible' : 'hidden';
+        });
+        document.getElementById('log').innerText = "Sistema Reiniciado. Barajee de nuevo.";
     }
 
     function mostrarMazo() {
