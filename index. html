@@ -1,0 +1,4 @@
+const USUARIO = "sanchezrodriguezdannyjose-byte"; 
+const REPOSITORIO = "Lectura-del-tarot"; 
+const BaseURL = `https://${USUARIO}.github.io/${REPOSITORIO}/`;
+const ApiURL = `https://api.github.com/repos/${USUARIO}/${REPOSITORIO}/contents/`;
