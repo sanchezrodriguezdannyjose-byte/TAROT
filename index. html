@@ -1,4 +1,62 @@
-const USUARIO = "sanchezrodriguezdannyjose-byte"; 
-const REPOSITORIO = "Lectura-del-tarot"; 
-const BaseURL = `https://${USUARIO}.github.io/${REPOSITORIO}/`;
-const ApiURL = `https://api.github.com/repos/${USUARIO}/${REPOSITORIO}/contents/`;
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Tarot</title>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; color: white; text-align: center; padding: 20px; }
+        .container { max-width: 500px; margin: auto; background: #2d2d2d; padding: 20px; border-radius: 15px; }
+        .card-display { width: 100%; min-height: 400px; border: 2px dashed #555; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; }
+        img { max-width: 100%; border-radius: 10px; }
+        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #e67e22; color: white; border: none; border-radius: 5px; }
+        #status { margin-top: 15px; color: #f1c40f; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Lectura de Tarot</h2>
+    <div class="card-display" id="display">
+        <p>Toca el botón para consultar</p>
+    </div>
+    <button onclick="tirarCarta()">TIRAR CARTA</button>
+    <div id="status">Cargando mazo...</div>
+</div>
+
+<script>
+    const USUARIO = "sanchezrodriguezdannyjose-byte"; 
+    const REPOSITORIO = "TAROT"; // Nombre exacto del repo
+    const BaseURL = `https://${USUARIO}.github.io/${REPOSITORIO}/`;
+    const ApiURL = `https://api.github.com/repos/${USUARIO}/${REPOSITORIO}/contents/`;
+
+    let mazo = [];
+
+    async function cargarMazo() {
+        try {
+            const res = await fetch(ApiURL);
+            const data = await res.json();
+            // Filtra solo archivos que terminan en .jpg, .JPG, .png o .PNG
+            mazo = data
+                .filter(f => f.name.toLowerCase().endsWith('.jpg') || f.name.toLowerCase().endsWith('.png'))
+                .map(f => f.name);
+            
+            document.getElementById('status').innerText = `Mazo listo: ${mazo.length} cartas encontradas.`;
+        } catch (e) {
+            document.getElementById('status').innerText = "Error al conectar con las imágenes.";
+        }
+    }
+
+    function tirarCarta() {
+        if (mazo.length === 0) return;
+        const randomCard = mazo[Math.floor(Math.random() * mazo.length)];
+        const urlFinal = BaseURL + encodeURIComponent(randomCard);
+        document.getElementById('display').innerHTML = `<img src="${urlFinal}" alt="Carta">`;
+        document.getElementById('status').innerText = "Carta: " + randomCard;
+    }
+
+    window.onload = cargarMazo;
+</script>
+
+</body>
+</html>
