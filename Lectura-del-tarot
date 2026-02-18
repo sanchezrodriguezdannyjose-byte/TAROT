@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tarot Petra Olivares - Realismo Total</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            background: #050208; 
+            color: #f1c40f; 
+            font-family: 'Georgia', serif; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            width: 100vw;
+            overflow: hidden; 
+        }
+
+        h1 { 
+            text-align: center;
+            padding: 8px 0;
+            font-size: 1.2rem; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            text-shadow: 0 0 10px rgba(241, 196, 15, 0.5);
+            flex-shrink: 0;
+        }
+        
+        .viewport-fix { 
+            flex: 1; 
+            width: 100%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            overflow: hidden; 
+            position: relative;
+            perspective: 1200px; 
+        }
+        
+        .mesa-tarot { 
+            position: relative; 
+            width: 900px; 
+            height: 800px; 
+            background: radial-gradient(circle, #1a0f2e 0%, #000 85%); 
+            border-radius: 50%; 
+            transform-origin: center center; 
+            flex-shrink: 0;
+            transform: rotateX(10deg); 
+        }
+        
+        .slot { 
+            position: absolute; 
+            width: 140px; 
+            height: 217px; 
+            border: 1px solid #d4af37; 
+            border-radius: 12px; 
+            background: #111; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            overflow: hidden; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.9); 
+            transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1), box-shadow 0.4s, top 0.6s, left 0.6s; 
+            z-index: 5;
+            touch-action: none;
+            cursor: pointer;
+            visibility: hidden;
+        }
+        .slot.visible { visibility: visible; }
+        .slot img { width: 100%; height: 100%; object-fit: cover; display: none; }
+        
+        .is-back { background: linear-gradient(135deg, #2e1a47 0%, #000 100%) !important; border: 2px solid #f1c40f; position: relative; visibility: visible !important; }
+        .is-back::after { content: "★"; color: rgba(241, 196, 15, 0.2); font-size: 2.5rem; }
+
+        .invertida img { transform: rotate(180deg); }
+
+        .slot.zoom {
+            transform: scale(1.8) !important;
+            z-index: 500 !important;
+            box-shadow: 0 0 50px rgba(255, 255, 255, 0.5);
+            border-color: #fff;
+        }
+
+        .en-mazo { left: 380px !important; top: 290px !important; visibility: visible !important; }
+        #s0.en-mazo { transform: translateX(-65px) rotate(-25deg); z-index: 10; }
+        #s1.en-mazo { transform: translateX(-50px) rotate(-20deg); z-index: 11; }
+        #s2.en-mazo { transform: translateX(-35px) rotate(-15deg); z-index: 12; }
+        #s3.en-mazo { transform: translateX(-18px) rotate(-10deg); z-index: 13; }
+        #s4.en-mazo { transform: translateX(-5px) rotate(-5deg); z-index: 14; }
+        #s5.en-mazo { transform: translateX(5px) rotate(5deg); z-index: 15; }
+        #s6.en-mazo { transform: translateX(18px) rotate(10deg); z-index: 16; }
+        #s7.en-mazo { transform: translateX(35px) rotate(15deg); z-index: 17; }
+        #s8.en-mazo { transform: translateX(50px) rotate(20deg); z-index: 18; }
+        #s9.en-mazo { transform: translateX(65px) rotate(25deg); z-index: 19; }
+
+        /* POSICIONES CRUZ CELTA */
+        .pos-celta-0 { left: 280px; top: 290px; z-index: 20; } 
+        .pos-celta-1 { left: 280px; top: 290px; transform: rotate(90deg); z-index: 21; } 
+        .pos-celta-2 { left: 280px; top: 560px; } 
+        .pos-celta-3 { left: 40px; top: 290px; }  
+        .pos-celta-4 { left: 520px; top: 290px; } 
+        .pos-celta-5 { left: 280px; top: 20px; }  
+        .pos-celta-6 { left: 720px; top: 560px; } 
+        .pos-celta-7 { left: 720px; top: 380px; } 
+        .pos-celta-8 { left: 720px; top: 200px; } 
+        .pos-celta-9 { left: 720px; top: 20px; }
+
+        /* POSICIONES PREGUNTAS */
+        .pos-preg-0 { left: 100px; top: 50px; }
+        .pos-preg-1 { left: 290px; top: 30px; }
+        .pos-preg-2 { left: 480px; top: 30px; }
+        .pos-preg-3 { left: 670px; top: 50px; }
+
+        .controles { 
+            padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; 
+            width: 100%; background: #000; z-index: 1000; border-top: 1px solid #1a0f2e; flex-shrink: 0;
+        }
+        #log { font-size: 0.85rem; color: #f1c40f; font-weight: bold; }
+        button { padding: 10px 20px; background: #1a0f2e; border: 1px solid #f1c40f; color: #f1c40f; font-weight: bold; cursor: pointer; border-radius: 6px; text-transform: uppercase; }
+        button:disabled { opacity: 0.2; }
+
+        /* VENTANA RESUMEN */
+        #modal-resumen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.98); z-index: 2000;
+            display: none; flex-direction: column; padding: 15px; overflow-y: auto;
+        }
+        .header-resumen { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1c40f; padding-bottom: 10px; margin-bottom: 20px; }
+        
+        .wrapper-celta { position: relative; width: 900px; height: 800px; transform-origin: top left; margin-bottom: 20px; border: 1px solid #1a0f2e; background: rgba(20,10,30,0.3); border-radius: 20px; }
+        .mini-slot { position: absolute; width: 130px; height: 190px; border: 1px solid #d4af37; border-radius: 8px; overflow: hidden; }
+        .mini-slot img { width: 100%; height: 100%; object-fit: cover; }
+        .mini-inv img { transform: rotate(180deg); }
+
+        .grid-preguntas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-width: 800px; margin-bottom: 30px; }
+        .card-pregunta { border: 1px solid #d4af37; border-radius: 5px; overflow: hidden; aspect-ratio: 2/3; }
+        .card-pregunta img { width: 100%; height: 100%; object-fit: cover; }
+        .card-pregunta.inv img { transform: rotate(180deg); }
+
+        .seccion-titulo { color: #f1c40f; border-left: 4px solid #f1c40f; padding-left: 10px; margin: 25px 0 10px 0; text-transform: uppercase; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+<h1>Petra Olivares</h1>
+
+<div class="viewport-fix">
+    <div class="mesa-tarot" id="mesa">
+        <script>
+            for(let i=0; i<10; i++) document.write(`<div id="s${i}" class="slot is-back en-mazo" onmousedown="zoomIn(this)" onmouseup="zoomOut(this)" ontouchstart="zoomIn(this)" ontouchend="zoomOut(this)"></div>`);
+        </script>
+    </div>
+</div>
+
+<div class="controles">
+    <div id="log">Sincronizando...</div>
+    <div style="display:flex; gap:10px;">
+        <button id="btn-barajear" onclick="mezclar()">Barajear</button>
+        <button id="btn-accion" disabled onclick="lanzar()">Invocar</button>
+        <button onclick="toggleResumen()">Resumen</button>
+    </div>
+</div>
+
+<div id="modal-resumen">
+    <div class="header-resumen">
+        <h2>RESUMEN HISTÓRICO</h2>
+        <button onclick="toggleResumen()" style="background: #c0392b; border: none; color: white; padding: 8px 15px; border-radius: 4px;">Cerrar</button>
+    </div>
+    <div id="resumen-content"></div>
+</div>
+
+<script>
+    // --- AQUÍ ESTÁN LOS CAMBIOS PARA TU NUEVO REPOSITORIO ---
+    const USUARIO = "sanchezrodriguezdannyjose-byte"; 
+    const REPOSITORIO = "Lectura-del-tarot"; 
+    const BaseURL = `https://${USUARIO}.github.io/${REPOSITORIO}/`;
+    const ApiURL = `https://api.github.com/repos/${USUARIO}/${REPOSITORIO}/contents/`;
+
+    let mazoOriginal = [];
+    let seleccionadas = [];
+    let tiradasRealizadas = 0;
+    let fase = "CELTA";
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(tipo) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        let freq = tipo === 'shuffle' ? 150 : 450;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+    }
+
+    function zoomIn(el) { if (!el.classList.contains('is-back')) el.classList.add('zoom'); }
+    function zoomOut(el) { el.classList.remove('zoom'); }
+
+    async function obtenerNombresDelServidor() {
+        try {
+            const response = await fetch(ApiURL);
+            const archivos = await response.json();
+            // Filtramos archivos de imagen
+            mazoOriginal = archivos
+                .filter(f => f.name.match(/\.(jpg|jpeg|png|JPG|PNG)$/))
+                .map(f => f.name);
+            document.getElementById('log').innerText = "Mazo Sincronizado.";
+        } catch (e) { 
+            document.getElementById('log').innerText = "Error de red."; 
+            console.error(e);
+        }
+    }
+
+    async function mezclar() {
+        if (mazoOriginal.length < 4) return;
+        playSound('shuffle');
+        let cant = fase === "CELTA" ? 10 : 4;
+        // Si hay menos cartas de las necesarias, ajustamos la cantidad
+        if (mazoOriginal.length < cant) cant = mazoOriginal.length;
+
+        let mazo = [...mazoOriginal].sort(() => Math.random() - 0.5);
+        let elegidas = mazo.slice(0, cant);
+        seleccionadas = [];
+
+        document.querySelectorAll('.slot').forEach((s, i) => {
+            s.innerHTML = ''; 
+            s.className = 'slot is-back en-mazo';
+            s.style.visibility = i < cant ? 'visible' : 'hidden';
+        });
+
+        for(let i=0; i<cant; i++) {
+            const img = new Image();
+            img.src = BaseURL + elegidas[i];
+            const invertida = Math.random() > 0.5;
+            await new Promise(res => {
+                img.onload = () => { seleccionadas[i] = { img, invertida, src: img.src }; res(); };
+                img.onerror = () => res();
+            });
+        }
+        document.getElementById('log').innerText = "Mazo preparado.";
+        document.getElementById('btn-accion').disabled = false;
+    }
+
+    async function lanzar() {
+        document.getElementById('btn-accion').disabled = true;
+        document.getElementById('btn-barajear').disabled = true;
+        let cant = seleccionadas.length;
+
+        for(let i=0; i<cant; i++) {
+            const s = document.getElementById(`s${i}`);
+            s.classList.remove('en-mazo');
+            s.classList.add(fase === "CELTA" ? `pos-celta-${i}` : `pos-preg-${i}`);
+            playSound('card');
+            if(seleccionadas[i]) {
+                const { img, invertida } = seleccionadas[i];
+                if(invertida) s.classList.add('invertida');
+                s.appendChild(img);
+                img.style.display = "block";
+                s.classList.remove('is-back');
+                s.classList.add('visible');
+            }
+            await new Promise(r => setTimeout(r, 600));
+        }
+
+        guardarEnResumen();
+
+        if (fase === "CELTA") {
+            tiradasRealizadas++;
+            if (tiradasRealizadas >= 3) {
+                fase = "PREGUNTAS";
+                document.getElementById('log').innerText = "Fase de Preguntas Activa";
+                document.getElementById('btn-accion').innerText = "Consultar";
+            } else {
+                document.getElementById('log').innerText = `Tirada ${tiradasRealizadas} terminada.`;
+            }
+        }
+        document.getElementById('btn-barajear').disabled = false;
+    }
+
+    function guardarEnResumen() {
+        const contenedor = document.getElementById('resumen-content');
+        const seccion = document.createElement('div');
+        const titulo = document.createElement('div');
+        titulo.className = "seccion-titulo";
+        titulo.innerText = fase === "CELTA" ? `Cruz Celta #${tiradasRealizadas + 1}` : "Consulta Libre (4)";
+        
+        if (fase === "CELTA") {
+            const wrapper = document.createElement('div');
+            wrapper.className = "wrapper-celta";
+            const pos = [
+                {l:280, t:290, r:0}, {l:280, t:290, r:90}, {l:280, t:560, r:0},
+                {l:40, t:290, r:0}, {l:520, t:290, r:0}, {l:280, t:20, r:0},
+                {l:720, t:560, r:0}, {l:720, t:380, r:0}, {l:720, t:200, r:0}, {l:720, t:20, r:0}
+            ];
+            seleccionadas.forEach((c, i) => {
+                if (pos[i]) {
+                    const div = document.createElement('div');
+                    div.className = `mini-slot ${c.invertida ? 'mini-inv' : ''}`;
+                    div.style.left = pos[i].l + "px"; div.style.top = pos[i].t + "px";
+                    div.style.transform = `rotate(${pos[i].r}deg)`;
+                    div.innerHTML = `<img src="${c.src}">`;
+                    wrapper.appendChild(div);
+                }
+            });
+            const scale = (window.innerWidth - 40) / 900;
+            if(scale < 1) wrapper.style.transform = `scale(${scale})`;
+            wrapper.style.height = (800 * Math.min(scale, 1)) + "px";
+            seccion.appendChild(titulo); seccion.appendChild(wrapper);
+        } else {
+            const grid = document.createElement('div');
+            grid.className = "grid-preguntas";
+            seleccionadas.forEach(c => {
+                grid.innerHTML += `<div class="card-pregunta ${c.invertida ? 'inv' : ''}"><img src="${c.src}"></div>`;
+            });
+            seccion.appendChild(titulo); seccion.appendChild(grid);
+        }
+        contenedor.prepend(seccion);
+    }
+
+    function toggleResumen() {
+        const modal = document.getElementById('modal-resumen');
+        modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    function ajustar() {
+        const mesa = document.getElementById('mesa');
+        const cont = document.querySelector('.viewport-fix');
+        const escala = Math.min(cont.clientWidth / 950, cont.clientHeight / 850, 1);
+        mesa.style.transform = `rotateX(10deg) scale(${escala * 0.95})`;
+    }
+
+    window.onload = () => { ajustar(); obtenerNombresDelServidor(); };
+    window.onresize = ajustar;
+</script>
+</body>
+</html>
